@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
 
 const UpdateTask = ({ user }) => {
     const { taskId } = useParams();
     const [task, setTask] = useState({ title: '', description: '', dueDate: '', collaborators: '' });
+    const [users, setUsers] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,7 +29,25 @@ const UpdateTask = ({ user }) => {
             }
         };
 
+        const fetchUsers = async () => {
+            const db = getFirestore();
+            const usersCollection = collection(db, 'users');
+
+            try {
+                const querySnapshot = await getDocs(usersCollection);
+                const usersData = querySnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setUsers(usersData);
+            } catch (error) {
+                console.error('Error getting users: ', error);
+            }
+        };
+
+
         fetchTask();
+        fetchUsers()
     }, [user, taskId]);
 
     const handleUpdateTask = async () => {
@@ -49,6 +68,7 @@ const UpdateTask = ({ user }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        console.log(name, value);
         setTask((prevTask) => ({
             ...prevTask,
             [name]: value,
@@ -87,9 +107,15 @@ const UpdateTask = ({ user }) => {
                     type="text"
                     placeholder="Collaborators (comma-separated emails)"
                     name="collaborators"
-                    value={task.collaborators}
+                    value={task.collaborators
+                        ? users
+                            .filter((user) => task.collaborators.includes(user.id))
+                            .map((user) => user.email)
+                            .join(', ')
+                        : ''}
                     onChange={handleChange}
                     className="w-full p-2 mb-2 border rounded"
+                    disabled={true}
                 />
                 <button
                     onClick={handleUpdateTask}
