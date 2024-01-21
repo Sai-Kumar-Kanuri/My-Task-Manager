@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getFirestore, collection, addDoc, getDocs } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+
 
 const TaskCreate = ({ user }) => {
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', collaborators: '' });
@@ -63,6 +64,11 @@ const TaskCreate = ({ user }) => {
       }
     }
   };
+
+  if (!user) {
+    return <Navigate to="/signin" />;
+  }
+
 
   return (
     <div className="mx-auto max-w-2xl">

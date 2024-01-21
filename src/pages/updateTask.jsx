@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getFirestore, doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
+import { Navigate } from 'react-router-dom';
 
 const UpdateTask = ({ user }) => {
     const { taskId } = useParams();
@@ -74,6 +75,11 @@ const UpdateTask = ({ user }) => {
             [name]: value,
         }));
     };
+
+    if (!user) {
+        return <Navigate to="/signin" />;
+    }
+
 
     return (
         <div className="mx-auto max-w-2xl">

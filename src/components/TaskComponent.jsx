@@ -8,9 +8,6 @@ const TaskComponent = ({ user }) => {
     const [tasks, setTasks] = useState([]);
     const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', collaborators: '' });
 
-    // const handleCreateTask = () => { }
-    // const handleUpdateTask = () => { }
-    // const handleDeleteTask = () => { }
 
     useEffect(() => {
         const fetchTasks = async () => {

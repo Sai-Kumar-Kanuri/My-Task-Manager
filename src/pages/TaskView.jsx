@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import TaskItem from '../components/TaskItem';
 
 const TaskView = ({ user }) => {
@@ -122,7 +122,9 @@ const TaskView = ({ user }) => {
         return collaboratorNames;
     };
 
-
+    if (!user) {
+        return <Navigate to="/signin" />;
+    }
 
     return (
 
