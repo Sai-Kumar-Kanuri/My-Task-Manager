@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { auth } from '../firebase'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useNavigate } from "react-router-dom";
+import { addDoc, collection, getFirestore } from 'firebase/firestore';
 
 const SignUp = () => {
     const [email, setEmail] = useState('');
@@ -14,6 +15,15 @@ const SignUp = () => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             if (userCredential) {
                 await updateProfile(userCredential.user, { displayName });
+                const db = getFirestore();
+                const userRef = await addDoc(collection(db, 'users'), {
+                    id: userCredential.user.uid,
+                    email: email,
+                    name: displayName,
+                    collaborators: [],
+                });
+
+                console.log(userRef);
                 await auth.signOut();
                 navigate('/signin');
             }

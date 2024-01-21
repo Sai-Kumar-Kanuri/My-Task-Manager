@@ -30,15 +30,43 @@ const TaskView = ({ user }) => {
         const fetchTasks = async () => {
             if (user) {
                 const db = getFirestore();
-                const q = query(collection(db, 'tasks'), where('assignee', '==', user.uid));
+                const assigneeQuery = query(collection(db, 'tasks'), where('assignee', '==', user.uid));
+                const collaboratorQuery = query(collection(db, 'tasks'), where('collaborators', 'array-contains', user.uid));
+                // const q = query(collection(db, 'tasks'), where('assignee', '==', user.uid));
+
+                // try {
+                //     const querySnapshot = await getDocs(q);
+                //     const tasksData = querySnapshot.docs.map((doc) => ({
+                //         id: doc.id,
+                //         ...doc.data(),
+                //     }));
+                //     setTasks(tasksData);
+                // } catch (error) {
+                //     console.error('Error getting tasks: ', error);
+                // }
 
                 try {
-                    const querySnapshot = await getDocs(q);
-                    const tasksData = querySnapshot.docs.map((doc) => ({
+                    const assigneeSnapshot = await getDocs(assigneeQuery);
+                    const collaboratorSnapshot = await getDocs(collaboratorQuery);
+                    const assigneeTasks = assigneeSnapshot.docs.map((doc) => ({
                         id: doc.id,
                         ...doc.data(),
                     }));
-                    setTasks(tasksData);
+
+                    const collaboratorTasks = collaboratorSnapshot.docs.map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }));
+
+                    // Combine assignee tasks and collaborator tasks
+                    const allTasks = [...assigneeTasks, ...collaboratorTasks];
+
+                    // Remove duplicates by ID (tasks can be both assigned and collaborated)
+                    const uniqueTasks = allTasks.filter((task, index, self) =>
+                        index === self.findIndex((t) => t.id === task.id)
+                    );
+
+                    setTasks(uniqueTasks);
                 } catch (error) {
                     console.error('Error getting tasks: ', error);
                 }
@@ -50,6 +78,30 @@ const TaskView = ({ user }) => {
 
     useEffect(() => {
         // Apply filters whenever tasks or filterCompleted changes
+        const filterTasks = async () => {
+            let filtered = tasks.slice(); // Create a copy of tasks to avoid modifying the original array
+
+            if (filterCompleted) {
+                filtered = filtered.filter(task => task.completed);
+            }
+
+            if (sortByDueDate) {
+                filtered.sort((a, b) => {
+                    const dateA = new Date(a.dueDate);
+                    const dateB = new Date(b.dueDate);
+                    return dateA - dateB;
+                });
+            }
+
+            for (const task of filtered) {
+                const collaboratorNames = await fetchCollaboratorNames(task.collaborators);
+                task.collaboratorNames = collaboratorNames;
+            }
+
+            // console.log(filtered);
+
+            setFilteredTasks(filtered);
+        };
         filterTasks();
     }, [tasks, filterCompleted, sortByDueDate]);
 
@@ -89,23 +141,16 @@ const TaskView = ({ user }) => {
         }
     };
 
-    const filterTasks = () => {
-        let filtered = tasks.slice(); // Create a copy of tasks to avoid modifying the original array
+    const fetchCollaboratorNames = async (collaboratorIds) => {
+        const db = getFirestore();
+        const usersCollection = collection(db, 'users');
+        const collaboratorDocs = await getDocs(query(usersCollection, where('id', 'in', collaboratorIds)));
 
-        if (filterCompleted) {
-            filtered = filtered.filter(task => task.completed);
-        }
-
-        if (sortByDueDate) {
-            filtered.sort((a, b) => {
-                const dateA = new Date(a.dueDate);
-                const dateB = new Date(b.dueDate);
-                return dateA - dateB;
-            });
-        }
-
-        setFilteredTasks(filtered);
+        const collaboratorNames = collaboratorDocs.docs.map(doc => doc.data().name);
+        return collaboratorNames;
     };
+
+
 
     return (
 
@@ -136,7 +181,7 @@ const TaskView = ({ user }) => {
                             <div className="font-bold">Title: {task.title}</div>
                             <div className="mb-2">Description: {task.description}</div>
                             <div className="mb-2">Due Date: {task.dueDate}</div>
-                            <div className="mb-2">Collaborators: {Array.isArray(task.collaborators) ? task.collaborators.join(', ') : ''}</div>
+                            <div className="mb-2">Collaborators: {Array.isArray(task.collaboratorNames) ? task.collaboratorNames.join(', ') : ''}</div>
                             <button
                                 onClick={() => handleUpdateTask(task.id, { completed: !task.completed })}
                                 className={`p-2 rounded mr-2 ${task.completed ? 'bg-green-500' : 'bg-green-500 hover:bg-green-700 text-white'}`}
