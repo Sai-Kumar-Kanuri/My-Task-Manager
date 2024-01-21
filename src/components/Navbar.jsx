@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom';
 import { auth } from '../firebase';
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -106,10 +106,12 @@ import { auth } from '../firebase';
 
 const Navbar = ({ user }) => {
     // console.log(user);
+    const navigate = useNavigate();
     const handleSignout = async () => {
         try {
             // Add Firebase sign-out logic here
             await auth.signOut();
+            navigate("/signin")
             localStorage.removeItem('accessToken');
 
         } catch (error) {

@@ -19,9 +19,12 @@
 import React, { useState, useEffect } from 'react';
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-
+import DoneAllOutlinedIcon from '@mui/icons-material/DoneAllOutlined';
 const TaskView = ({ user }) => {
     const [tasks, setTasks] = useState([]);
+    const [filterCompleted, setFilterCompleted] = useState(false);
+    const [filteredTasks, setFilteredTasks] = useState([]);
+    const [sortByDueDate, setSortByDueDate] = useState(false);
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -44,6 +47,11 @@ const TaskView = ({ user }) => {
 
         fetchTasks();
     }, [user]);
+
+    useEffect(() => {
+        // Apply filters whenever tasks or filterCompleted changes
+        filterTasks();
+    }, [tasks, filterCompleted, sortByDueDate]);
 
     const handleUpdateTask = async (taskId, updates) => {
         if (user) {
@@ -81,14 +89,49 @@ const TaskView = ({ user }) => {
         }
     };
 
+    const filterTasks = () => {
+        let filtered = tasks.slice(); // Create a copy of tasks to avoid modifying the original array
+
+        if (filterCompleted) {
+            filtered = filtered.filter(task => task.completed);
+        }
+
+        if (sortByDueDate) {
+            filtered.sort((a, b) => {
+                const dateA = new Date(a.dueDate);
+                const dateB = new Date(b.dueDate);
+                return dateA - dateB;
+            });
+        }
+
+        setFilteredTasks(filtered);
+    };
+
     return (
 
         <div className="mx-auto max-w-2xl">
             <h2 className="text-3xl font-bold mb-4">Task Management</h2>
+
+            <div className="mb-4">
+                <label className="mr-2">Filter Completed Tasks:</label>
+                <input
+                    type="checkbox"
+                    checked={filterCompleted}
+                    onChange={() => setFilterCompleted(!filterCompleted)}
+                />
+                <label className="ml-4 mr-2">Sort by Due Date:</label>
+                <input
+                    type="checkbox"
+                    checked={sortByDueDate}
+                    onChange={() => setSortByDueDate(!sortByDueDate)}
+                />
+            </div>
+
             <div>
                 <h3 className="text-2xl font-bold mb-2">Your Tasks</h3>
+
                 <ul>
-                    {tasks.map((task) => (
+                    {filteredTasks.map((task) => (
                         <li key={task.id} className="mb-4 p-4 border rounded">
                             <div className="font-bold">Title: {task.title}</div>
                             <div className="mb-2">Description: {task.description}</div>
@@ -96,9 +139,11 @@ const TaskView = ({ user }) => {
                             <div className="mb-2">Collaborators: {Array.isArray(task.collaborators) ? task.collaborators.join(', ') : ''}</div>
                             <button
                                 onClick={() => handleUpdateTask(task.id, { completed: !task.completed })}
-                                className="bg-green-500 hover:bg-green-700 text-white p-2 rounded mr-2"
+                                className={`p-2 rounded mr-2 ${task.completed ? 'bg-green-500' : 'bg-green-500 hover:bg-green-700 text-white'}`}
                             >
-                                Toggle Completion
+                                {task.completed ? (
+                                    <DoneAllOutlinedIcon className='text-white rounded-md' />
+                                ) : 'Toggle Completion'}
                             </button>
                             <Link
                                 to={`/tasks/update/${task.id}`}
